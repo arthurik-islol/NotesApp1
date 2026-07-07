@@ -1,0 +1,6 @@
+{
+  "name": "Personal Notes & Goals Organizer",
+  "description": "An AI-powered organizer to manage personal notes, summarize ideas, track due dates, and visualize personal goals and milestones with interactive progress dashboards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

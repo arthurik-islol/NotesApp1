@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aura Organizer - Personal AI Notes & Goals Hub</title>
+    <script>
+      (function() {
+        function isBenignError(msg) {
+          if (!msg) return false;
+          const s = String(msg).toLowerCase();
+          return s.includes('websocket') || 
+                 s.includes('closed without opened') || 
+                 s.includes('failed to connect') ||
+                 s.includes('hmr');
+        }
+
+        window.addEventListener('unhandledrejection', function(event) {
+          const reason = event.reason;
+          const msg = reason?.message || String(reason || '');
+          if (isBenignError(msg)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }, true);
+
+        window.addEventListener('error', function(event) {
+          const msg = event.message || '';
+          if (isBenignError(msg)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }, true);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
