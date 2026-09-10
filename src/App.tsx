@@ -244,13 +244,17 @@ export default function App() {
     importedNotes: Note[], 
     importedTasks: Task[], 
     importedUsername?: string, 
-    importedCurrency?: string
+    importedCurrency?: string,
+    importedReminders?: Reminder[]
   ) => {
     if (importedNotes && importedNotes.length > 0) {
       updateNotesState(importedNotes);
     }
     if (importedTasks && importedTasks.length > 0) {
       updateTasksState(importedTasks);
+    }
+    if (importedReminders && importedReminders.length > 0) {
+      updateRemindersState(importedReminders);
     }
     if (importedUsername) {
       handleUpdateUsername(importedUsername);
@@ -457,6 +461,7 @@ export default function App() {
             onClearTasks={handleClearTasks}
             notes={notes}
             tasks={tasks}
+            reminders={reminders}
             onImportData={handleImportData}
           />
         )}

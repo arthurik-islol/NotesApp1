@@ -17,137 +17,13 @@ import {
   Upload
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-
-function parseDatesFromText(text: string): string[] {
-  const dates: string[] = [];
-  const normalized = text.toLowerCase().trim();
-
-  // 1. Match YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD
-  const ymdRegex = /\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b/g;
-  let match;
-  while ((match = ymdRegex.exec(normalized)) !== null) {
-    const year = parseInt(match[1]);
-    const month = parseInt(match[2]);
-    const day = parseInt(match[3]);
-    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-      dates.push(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
-    }
-  }
-
-  // 2. Match DD MM YYYY or DD-MM-YYYY or DD/MM/YYYY or DD.MM.YYYY
-  const dmyRegex = /\b(\d{1,2})[-/.\s](\d{1,2})[-/.\s](\d{4})\b/g;
-  while ((match = dmyRegex.exec(normalized)) !== null) {
-    const day = parseInt(match[1]);
-    const month = parseInt(match[2]);
-    const year = parseInt(match[3]);
-    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-      dates.push(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
-    }
-  }
-
-  // 3. Match MM/DD or MM-DD or MM.DD (e.g., 6/24, 06/24, 6-24, 6.24) without year attached
-  const mdRegex = /\b(\d{1,2})[-/.](\d{1,2})\b/g;
-  while ((match = mdRegex.exec(normalized)) !== null) {
-    const startIdx = match.index;
-    const endIdx = mdRegex.lastIndex;
-    const beforeChar = startIdx > 0 ? normalized[startIdx - 1] : '';
-    const afterChar = endIdx < normalized.length ? normalized[endIdx] : '';
-    if (!['-', '/', '.'].includes(beforeChar) && !['-', '/', '.'].includes(afterChar)) {
-      const val1 = parseInt(match[1]);
-      const val2 = parseInt(match[2]);
-      if (val1 >= 1 && val1 <= 12 && val2 >= 1 && val2 <= 31) {
-        dates.push(`2026-${String(val1).padStart(2, '0')}-${String(val2).padStart(2, '0')}`);
-      } else if (val2 >= 1 && val2 <= 12 && val1 >= 1 && val1 <= 31) {
-        dates.push(`2026-${String(val2).padStart(2, '0')}-${String(val1).padStart(2, '0')}`);
-      }
-    }
-  }
-
-  // 4. Match textual month names: "June 24th, 2026", "24 June", "June 30", "June 29"
-  const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-  
-  // (month name) (day number)
-  const monthDayRegex = /\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\b\s*(\d{1,2})(?:st|nd|rd|th)?\b(?:\s*,?\s*(\d{4}))?/gi;
-  while ((match = monthDayRegex.exec(normalized)) !== null) {
-    const mStr = match[1].toLowerCase().slice(0, 3);
-    const mIdx = months.indexOf(mStr);
-    const day = parseInt(match[2]);
-    const year = match[3] ? parseInt(match[3]) : 2026;
-    if (mIdx !== -1 && day >= 1 && day <= 31) {
-      dates.push(`${year}-${String(mIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
-    }
-  }
-
-  // (day number) (month name)
-  const dayMonthRegex = /\b(\d{1,2})(?:st|nd|rd|th)?\s*(?:of\s*)?\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\b(?:\s*,?\s*(\d{4}))?/gi;
-  while ((match = dayMonthRegex.exec(normalized)) !== null) {
-    const day = parseInt(match[1]);
-    const mStr = match[2].toLowerCase().slice(0, 3);
-    const mIdx = months.indexOf(mStr);
-    const year = match[3] ? parseInt(match[3]) : 2026;
-    if (mIdx !== -1 && day >= 1 && day <= 31) {
-      dates.push(`${year}-${String(mIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
-    }
-  }
-
-  // 5. Contiguous digits e.g. "2652026" or "2562026" or "25062026"
-  const contiguousRegex = /\b(\d{5,8})\b/g;
-  while ((match = contiguousRegex.exec(normalized)) !== null) {
-    const digitsStr = match[1];
-    const year4 = parseInt(digitsStr.slice(-4));
-    if (year4 >= 2000 && year4 <= 2100) {
-      const rest = digitsStr.slice(0, -4);
-      if (rest.length === 2) {
-        const day = parseInt(rest[0]);
-        const month = parseInt(rest[1]);
-        if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-          dates.push(`${year4}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
-        }
-      } else if (rest.length === 3) {
-        const d1 = parseInt(rest.slice(0, 2));
-        const m1 = parseInt(rest.slice(2));
-        const d2 = parseInt(rest.slice(0, 1));
-        const m2 = parseInt(rest.slice(1));
-        
-        if (m1 >= 1 && m1 <= 12 && d1 >= 1 && d1 <= 31) {
-          dates.push(`${year4}-${String(m1).padStart(2, '0')}-${String(d1).padStart(2, '0')}`);
-        }
-        if (m2 >= 1 && m2 <= 12 && d2 >= 1 && d2 <= 31) {
-          dates.push(`${year4}-${String(m2).padStart(2, '0')}-${String(d2).padStart(2, '0')}`);
-        }
-      } else if (rest.length === 4) {
-        const day = parseInt(rest.slice(0, 2));
-        const month = parseInt(rest.slice(2));
-        if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-          dates.push(`${year4}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
-        }
-      }
-    }
-  }
-
-  // Filter out duplicates
-  return dates.filter((val, idx, self) => self.indexOf(val) === idx);
-}
-
-function parseFirstDateFromText(title: string, content: string): string | null {
-  const titleDates = parseDatesFromText(title);
-  if (titleDates.length > 0) return titleDates[0];
-  const contentDates = parseDatesFromText(content);
-  return contentDates.length > 0 ? contentDates[0] : null;
-}
-
-function getMonday(dateStr: string): string {
-  const d = new Date(dateStr);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(d.setDate(diff));
-  return monday.toISOString().split("T")[0];
-}
-
-function formatWeekHeader(mondayStr: string): string {
-  const d = new Date(mondayStr);
-  return "Week of " + d.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
-}
+import { 
+  parseDatesFromText, 
+  getNoteTargetDate, 
+  getMonday, 
+  formatWeekHeader,
+  formatCalendarDate
+} from "../utils/dateUtils";
 
 interface NotesManagerProps {
   notes: Note[];
@@ -316,7 +192,7 @@ export default function NotesManager({
 
   // Compute notes with linked target dates & group them by week (Monday)
   const notesWithDates = filteredNotes.map(note => {
-    const targetDate = parseFirstDateFromText(note.title, note.content) || note.createdAt.split("T")[0];
+    const targetDate = getNoteTargetDate(note);
     const monday = getMonday(targetDate);
     return { ...note, targetDate, monday };
   });
@@ -542,8 +418,9 @@ export default function NotesManager({
                               </p>
 
                               <div className="flex items-center justify-between mt-3">
-                                <span className="text-[10px] text-slate-400 font-mono dark:text-slate-500">
-                                  Linked: {note.targetDate}
+                                <span className="text-[10px] text-slate-400 font-mono dark:text-slate-500 flex items-center space-x-1">
+                                  <Calendar className="w-3 h-3 text-indigo-400 shrink-0" />
+                                  <span>{formatCalendarDate(note.targetDate)}</span>
                                 </span>
                               </div>
                             </div>
@@ -585,8 +462,9 @@ export default function NotesManager({
                   </p>
 
                   <div className="flex items-center justify-between mt-3">
-                    <span className="text-[10px] text-slate-400 font-mono dark:text-slate-500">
-                      Linked: {note.targetDate}
+                    <span className="text-[10px] text-slate-400 font-mono dark:text-slate-500 flex items-center space-x-1">
+                      <Calendar className="w-3 h-3 text-indigo-400 shrink-0" />
+                      <span>{formatCalendarDate(note.targetDate)}</span>
                     </span>
                   </div>
                 </div>
@@ -730,13 +608,34 @@ export default function NotesManager({
               {/* Note Header */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
                 <div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <span className="text-xs font-mono font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 dark:bg-indigo-950/40 dark:border-indigo-900/30 dark:text-indigo-400">
                       {activeNote.category}
                     </span>
-                    <span className="text-xs text-slate-400 font-mono">
-                      {new Date(activeNote.createdAt).toLocaleDateString(undefined, { dateStyle: "long" })}
-                    </span>
+
+                    {/* Primary Note Date: correctly shows the note's target date */}
+                    <div className="flex items-center space-x-1.5 text-xs font-mono font-semibold text-indigo-700 bg-indigo-50/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50 px-2.5 py-0.5 rounded-md border border-indigo-150 relative">
+                      <Calendar className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                      <span>{formatCalendarDate(getNoteTargetDate(activeNote))}</span>
+                      <input 
+                        type="date"
+                        value={getNoteTargetDate(activeNote)}
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            onUpdateNote({ ...activeNote, targetDate: e.target.value });
+                          }
+                        }}
+                        className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                        title="Click to adjust note's linked date"
+                      />
+                    </div>
+
+                    {/* Secondary File Import Timestamp */}
+                    {activeNote.createdAt && (
+                      <span className="text-[11px] text-slate-400 font-mono" title={`File created/imported: ${new Date(activeNote.createdAt).toLocaleString()}`}>
+                        (Imported {new Date(activeNote.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })})
+                      </span>
+                    )}
                   </div>
                   <h1 className="text-2xl font-sans font-bold text-slate-900 dark:text-slate-100 mt-1">
                     {activeNote.title}
@@ -867,7 +766,7 @@ export default function NotesManager({
                                 <button
                                   onClick={() => {
                                     if (!isImported && activeNote) {
-                                      const noteDateFallback = parseFirstDateFromText(activeNote.title, activeNote.content) || activeNote.createdAt.split("T")[0];
+                                      const noteDateFallback = getNoteTargetDate(activeNote);
                                       onImportTask(st.task, st.dueDate || noteDateFallback, uniqueTaskId);
                                     }
                                   }}

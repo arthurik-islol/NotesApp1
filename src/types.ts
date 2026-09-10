@@ -12,6 +12,7 @@ export interface Note {
   content: string;
   category: string;
   createdAt: string; // ISO string
+  targetDate?: string; // Optional explicit target date (YYYY-MM-DD)
   summary?: string;
   keyPoints?: string[];
   suggestedTasks?: { task: string; dueDate: string }[];

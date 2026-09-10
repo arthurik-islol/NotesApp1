@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Note, Task } from "../types";
+import { Note, Task, Reminder } from "../types";
 import { 
   X, 
   Settings, 
@@ -31,7 +31,14 @@ interface SettingsModalProps {
   onClearTasks: () => void;
   notes: Note[];
   tasks: Task[];
-  onImportData: (importedNotes: Note[], importedTasks: Task[], importedUsername?: string, importedCurrency?: string) => void;
+  reminders?: Reminder[];
+  onImportData: (
+    importedNotes: Note[], 
+    importedTasks: Task[], 
+    importedUsername?: string, 
+    importedCurrency?: string,
+    importedReminders?: Reminder[]
+  ) => void;
 }
 
 type SettingsTab = "general" | "appearance" | "backup" | "danger";
@@ -50,6 +57,7 @@ export default function SettingsModal({
   onClearTasks,
   notes,
   tasks,
+  reminders = [],
   onImportData
 }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
@@ -88,12 +96,13 @@ export default function SettingsModal({
     try {
       const backupObj = {
         app: "Aura Organizer",
-        version: "1.0",
+        version: "1.1",
         exportedAt: new Date().toISOString(),
         username,
         currency,
         notes,
-        tasks
+        tasks,
+        reminders
       };
       
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj, null, 2));
@@ -116,12 +125,13 @@ export default function SettingsModal({
         throw new Error("Invalid format. Expected a JSON object.");
       }
       
-      // We expect at least notes or tasks arrays (or both)
+      // We expect at least notes, tasks, or reminders arrays
       const importedNotes = Array.isArray(data.notes) ? data.notes : [];
       const importedTasks = Array.isArray(data.tasks) ? data.tasks : [];
+      const importedReminders = Array.isArray(data.reminders) ? data.reminders : [];
       
-      if (importedNotes.length === 0 && importedTasks.length === 0) {
-        throw new Error("No notes or tasks found in this backup file.");
+      if (importedNotes.length === 0 && importedTasks.length === 0 && importedReminders.length === 0) {
+        throw new Error("No notes, tasks, or reminders found in this backup file.");
       }
 
       // Safe import
@@ -129,7 +139,8 @@ export default function SettingsModal({
         importedNotes,
         importedTasks,
         data.username || undefined,
-        data.currency || undefined
+        data.currency || undefined,
+        importedReminders
       );
 
       // Reload local inputs
@@ -137,7 +148,12 @@ export default function SettingsModal({
       if (data.currency) setLocalCurrency(data.currency);
 
       setImportError(null);
-      setImportSuccess(`Successfully imported ${importedNotes.length} notes and ${importedTasks.length} tasks!`);
+      const summaryParts = [];
+      if (importedNotes.length > 0) summaryParts.push(`${importedNotes.length} notes`);
+      if (importedTasks.length > 0) summaryParts.push(`${importedTasks.length} tasks`);
+      if (importedReminders.length > 0) summaryParts.push(`${importedReminders.length} reminders`);
+      
+      setImportSuccess(`Successfully imported ${summaryParts.join(", ")}!`);
       setTimeout(() => setImportSuccess(null), 5000);
     } catch (err: any) {
       setImportSuccess(null);
